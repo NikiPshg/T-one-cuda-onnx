@@ -93,8 +93,8 @@ docker run -it --rm -p 8080:8080 t-one
 
    audio = read_example_audio() # либо read_audio("your_audio.flac")
 
-   pipeline = StreamingCTCPipeline.from_hugging_face()
-   print(pipeline.forward_offline(audio))  # офлайн-распознавание
+   pipeline = StreamingCTCPipeline.from_hugging_face(device_id=0)
+   print(pipeline.forward_offline(audio))  # офлайн-распознавание используя onnx cuda 
    ```
 
 2. Пример потоковой обработки смотрите в разделе ["Расширенный пример использования"](#-расширенный-пример-использования).

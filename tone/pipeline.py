@@ -53,7 +53,7 @@ class StreamingCTCPipeline:
     StateType: TypeAlias = tuple[npt.NDArray[np.float16], StreamingLogprobSplitter.StateType]
 
     @classmethod
-    def from_hugging_face(cls, *, decoder_type: DecoderType = DecoderType.BEAM_SEARCH) -> Self:
+    def from_hugging_face(cls, *, device_id:str,  decoder_type: DecoderType = DecoderType.BEAM_SEARCH) -> Self:
         """Creates a pipeline instance by downloading artifacts from Hugging Face Hub.
 
         Args:
@@ -64,7 +64,7 @@ class StreamingCTCPipeline:
             An initialized `StreamingCTCPipeline` instance.
 
         """
-        model = StreamingCTCModel.from_hugging_face()
+        model = StreamingCTCModel.from_hugging_face(device_id=device_id)
         logprob_splitter = StreamingLogprobSplitter()
         if decoder_type == DecoderType.GREEDY:
             decoder = GreedyCTCDecoder()
@@ -84,10 +84,10 @@ class StreamingCTCPipeline:
             copyfile(BeamSearchCTCDecoder.download_from_hugging_face(), dir_path / "kenlm.bin")
 
     @classmethod
-    def from_local(cls, dir_path: str | Path, *, decoder_type: DecoderType = DecoderType.BEAM_SEARCH) -> Self:
+    def from_local(cls, dir_path: str | Path, *, device_id: str, decoder_type: DecoderType = DecoderType.BEAM_SEARCH) -> Self:
         """Create StreamingCTCPipeline instance using artifacts from local folder."""
         dir_path = Path(dir_path)
-        model = StreamingCTCModel.from_local(dir_path / "model.onnx")
+        model = StreamingCTCModel.from_local(dir_path / "model.onnx", device_id=device_id)
         logprob_splitter = StreamingLogprobSplitter()
         if decoder_type == DecoderType.GREEDY:
             decoder = GreedyCTCDecoder()
@@ -131,12 +131,12 @@ class StreamingCTCPipeline:
                 - Updated state to pass into the next call.
 
         """
-        if not isinstance(audio_chunk, np.ndarray):
-            raise TypeError(f"Incorrect 'audio_chunk' type: expected np.ndarray, but got {type(audio_chunk)}")
-        if audio_chunk.shape != (self.CHUNK_SIZE,):
-            raise ValueError(f"Shape of 'audio_chunk' must be ({self.CHUNK_SIZE},), but got {audio_chunk.shape}")
-        if not isinstance(state, (tuple, type(None))):
-            raise TypeError(f"Incorrect 'state' type: expected tuple on None, but got {type(state)}")
+        # if not isinstance(audio_chunk, np.ndarray):
+        #     raise TypeError(f"Incorrect 'audio_chunk' type: expected np.ndarray, but got {type(audio_chunk)}")
+        # if audio_chunk.shape != (self.CHUNK_SIZE,):
+        #     raise ValueError(f"Shape of 'audio_chunk' must be ({self.CHUNK_SIZE},), but got {audio_chunk.shape}")
+        # if not isinstance(state, (tuple, type(None))):
+        #     raise TypeError(f"Incorrect 'state' type: expected tuple on None, but got {type(state)}")
 
         frame_size, time_bias = StreamingCTCModel.FRAME_SIZE, StreamingCTCModel.MEAN_TIME_BIAS
 
@@ -183,10 +183,10 @@ class StreamingCTCPipeline:
             OutputType: The decoded output for the entire segment.
 
         """
-        if not isinstance(audio, np.ndarray):
-            raise TypeError(f"Incorrect 'audio' type: expected np.ndarray, but got {type(audio)}")
-        if audio.ndim != 1:
-            raise ValueError(f"Shape of 'audio' must be (L,), but got {audio.shape}")
+        # if not isinstance(audio, np.ndarray):
+        #     raise TypeError(f"Incorrect 'audio' type: expected np.ndarray, but got {type(audio)}")
+        # if audio.ndim != 1:
+        #     raise ValueError(f"Shape of 'audio' must be (L,), but got {audio.shape}")
 
         audio = np.pad(audio, (self.PADDING, self.PADDING))
 

@@ -36,18 +36,10 @@ class StreamingCTCModel:
     _ort_sess: ort.InferenceSession
 
     @classmethod
-    def from_hugging_face(cls) -> Self:
-        """Load and initialize the model from Hugging Face Hub.
-
-        Downloads the model if not present locally, and initializes
-        an ONNX inference session.
-
-        Returns:
-            Self: An instance of StreamingCTCModel ready for inference.
-
-        """
-        model_path = cls.download_from_hugging_face()
-        return cls.from_local(model_path)
+    def from_hugging_face(cls, device_id: str) -> Self:
+        model_path = StreamingCTCModel.download_from_hugging_face()
+        model = StreamingCTCModel.from_local(model_path, device_id)
+        return model
 
     @classmethod
     def download_from_hugging_face(cls) -> str:
@@ -63,7 +55,7 @@ class StreamingCTCModel:
         )
 
     @classmethod
-    def from_local(cls, model_path: str | Path) -> Self:
+    def from_local(cls, model_path: str | Path, device_id: str) -> Self:
         """Initialize the model from a local ONNX file.
 
         Args:
@@ -73,7 +65,10 @@ class StreamingCTCModel:
             Self: An instance of StreamingCTCModel ready for inference.
 
         """
-        ort_sess = ort.InferenceSession(model_path)
+        ort_sess = ort.InferenceSession(
+            str(model_path), 
+            providers=[('CUDAExecutionProvider', {'device_id': device_id}), 'CPUExecutionProvider']
+        )
         return cls(ort_sess)
 
     def __init__(self, ort_sess: ort.InferenceSession) -> None:
@@ -111,12 +106,12 @@ class StreamingCTCModel:
             )
         batch_size = audio_chunk.shape[0]
         if state is None:
-            state = np.zeros((batch_size, self.STATE_SIZE), dtype=np.float16)  # Create empty initial states
-        if not isinstance(state, np.ndarray):
-            raise TypeError(f"Incorrect 'state' type: expected np.ndarray or None, but got {type(state)}")
-        if state.shape != (batch_size, self.STATE_SIZE):
-            raise ValueError(f"Shape of 'state' must be ({batch_size}, {self.STATE_SIZE}), but got {state.shape}")
-        if state.dtype != np.float16:
-            raise ValueError(f"Incorrect dtype of 'state': expected np.int32, but got {state.dtype}")
+            state = np.zeros((batch_size, self.STATE_SIZE), dtype=np.float32)  # Create empty initial states
+        # if not isinstance(state, np.ndarray):
+        #     raise TypeError(f"Incorrect 'state' type: expected np.ndarray or None, but got {type(state)}")
+        # if state.shape != (batch_size, self.STATE_SIZE):
+        #     raise ValueError(f"Shape of 'state' must be ({batch_size}, {self.STATE_SIZE}), but got {state.shape}")
+        # if state.dtype != np.float16:
+        #     raise ValueError(f"Incorrect dtype of 'state': expected np.int32, but got {state.dtype}")
 
-        return self._ort_sess.run(None, {"signal": audio_chunk, "state": state})
+        return self._ort_sess.run(None, {"signal":  np.float32(audio_chunk), "state": np.float32(state)})
