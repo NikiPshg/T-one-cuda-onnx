@@ -92,9 +92,9 @@ Prepare an audio file with **Russian speech** in a common format (.wav, .mp3, .f
 
 
    audio = read_example_audio() # or read_audio("your_audio.flac")
-
-   pipeline = StreamingCTCPipeline.from_hugging_face()
-   print(pipeline.forward_offline(audio))  # run offline recognition
+   # device_id device_id if the graphics card is not found, the CPU is used
+   pipeline = StreamingCTCPipeline.from_hugging_face(device_id=0)
+   print(pipeline.forward_offline(audio))  # offline recognition using onnx cuda
    ```
 
 2. See the ["Advanced usage example"](#-advanced-usage-example) section for an example of streaming.

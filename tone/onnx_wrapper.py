@@ -50,7 +50,7 @@ class StreamingCTCModel:
 
         """
         return hf_hub_download(
-            "t-tech/T-one",
+            "MTUCI/T-one-onnx-fix",
             "model.onnx",
         )
 
@@ -60,15 +60,31 @@ class StreamingCTCModel:
 
         Args:
             model_path (str | Path): Path to the ONNX model file.
+            device_id (str): CUDA device ID (e.g., "0", "1"). If CUDA is unavailable, falls back to CPU.
 
         Returns:
             Self: An instance of StreamingCTCModel ready for inference.
 
         """
-        ort_sess = ort.InferenceSession(
-            str(model_path), 
-            providers=[('CUDAExecutionProvider', {'device_id': device_id}), 'CPUExecutionProvider']
-        )
+        model_path = str(model_path)
+        
+        try:
+            ort_sess = ort.InferenceSession(
+                model_path,
+                providers=[('CUDAExecutionProvider', {'device_id': int(device_id)}), 'CPUExecutionProvider']
+            )
+            if 'CUDAExecutionProvider' in ort_sess.get_providers():
+                print(f"[INFO] Model loaded on CUDA device {device_id}")
+            else:
+                print("[WARN] CUDAExecutionProvider not available, using CPU")
+        except (ort.OrtException, ValueError, RuntimeError) as e:
+            print(f"[WARN] Failed to load model on CUDA (device {device_id}): {e}")
+            print("[INFO] Falling back to CPU")
+            ort_sess = ort.InferenceSession(
+                model_path,
+                providers=['CPUExecutionProvider']
+            )
+        
         return cls(ort_sess)
 
     def __init__(self, ort_sess: ort.InferenceSession) -> None:
